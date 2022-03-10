@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -11,6 +12,9 @@ import (
 	"syscall"
 	"unicode"
 
+	"code.opsmind.com/common/xsync/redislock"
+	"code.opsmind.com/common/xsync/singlerun"
+	"github.com/go-redis/redis/v8"
 	"github.com/jessevdk/go-flags"
 	"github.com/ochinchina/go-ini"
 	"github.com/ochinchina/supervisord/config"
@@ -130,10 +134,35 @@ func runServer() {
 		}
 		s := NewSupervisor(options.Configuration)
 		initSignals(s)
-		if _, _, _, sErr := s.Reload(); sErr != nil {
-			panic(sErr)
+		s.config.Load()
+
+		run := func(ctx context.Context) {
+			var finishedCh chan struct{}
+			go func() {
+				select {
+				case <-ctx.Done():
+					s.restarting = true
+				case <-finishedCh:
+				}
+			}()
+			if _, _, _, sErr := s.Reload(); sErr != nil {
+				panic(sErr)
+			}
+			s.WaitForExit()
+			finishedCh <- struct{}{}
 		}
-		s.WaitForExit()
+
+		if redisConfig, ok := s.config.GetRedis(); ok {
+			addr := redisConfig.GetString("addr", "")
+			password := redisConfig.GetString("password", "")
+			if addr != "" {
+				rdcli := redis.NewClient(&redis.Options{Addr: addr, Password: password})
+				cli := redislock.New(rdcli)
+				singlerun.Do(cli, "supervisord-lock", run)
+			}
+		} else {
+			run(context.TODO())
+		}
 	}
 }
 

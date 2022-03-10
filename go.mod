@@ -2,7 +2,11 @@ module github.com/ochinchina/supervisord
 
 go 1.16
 
+replace code.opsmind.com/common => ../duck/common
+
 require (
+	code.opsmind.com/common v0.0.0-00010101000000-000000000000
+	github.com/go-redis/redis/v8 v8.11.4 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/rpc v1.2.0
@@ -26,7 +30,6 @@ require (
 	github.com/prometheus/common v0.23.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420
-	golang.org/x/sys v0.0.0-20210503080704-8803ae5d1324 // indirect
 )
 
 replace (

@@ -228,6 +228,12 @@ func (c *Config) GetSupervisord() (*Entry, bool) {
 	return entry, ok
 }
 
+// GetSupervisord returns "redis" configuration section
+func (c *Config) GetRedis() (*Entry, bool) {
+	entry, ok := c.entries["redis"]
+	return entry, ok
+}
+
 // GetInetHTTPServer returns inet_http_server configuration section
 func (c *Config) GetInetHTTPServer() (*Entry, bool) {
 	entry, ok := c.entries["inet_http_server"]
