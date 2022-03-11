@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 	"unicode"
 
 	"code.opsmind.com/common/xsync/redislock"
@@ -137,12 +138,13 @@ func runServer() {
 		s.config.Load()
 
 		run := func(ctx context.Context) {
-			var finishedCh chan struct{}
+			finishedCh := make(chan struct{}, 1)
 			go func() {
 				select {
 				case <-ctx.Done():
 					s.restarting = true
 				case <-finishedCh:
+					close(finishedCh)
 				}
 			}()
 			if _, _, _, sErr := s.Reload(); sErr != nil {
@@ -150,6 +152,7 @@ func runServer() {
 			}
 			s.WaitForExit()
 			finishedCh <- struct{}{}
+			s.restarting = false
 		}
 
 		if redisConfig, ok := s.config.GetRedis(); ok {
@@ -158,7 +161,7 @@ func runServer() {
 			if addr != "" {
 				rdcli := redis.NewClient(&redis.Options{Addr: addr, Password: password})
 				cli := redislock.New(rdcli)
-				singlerun.Do(cli, "supervisord-lock", run)
+				singlerun.Do(cli, "supervisord-lock", run, []singlerun.Option{singlerun.WithLockTTL(time.Second * 3)}...)
 			}
 		} else {
 			run(context.TODO())

@@ -230,7 +230,7 @@ func (c *Config) GetSupervisord() (*Entry, bool) {
 
 // GetSupervisord returns "redis" configuration section
 func (c *Config) GetRedis() (*Entry, bool) {
-	entry, ok := c.entries["redis"]
+	entry, ok := c.entries["redis_config"]
 	return entry, ok
 }
 
