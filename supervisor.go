@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -465,10 +466,23 @@ func (s *Supervisor) Reload() (addedGroup []string, changedGroup []string, remov
 
 }
 
+func RunCmd(name string, args ...string) (string, error) {
+	log.Info(name, args)
+	cmd := exec.Command(name, args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}
+
 // WaitForExit waits for supervisord to exit
 func (s *Supervisor) WaitForExit() {
 	for {
 		if s.IsRestarting() {
+			if _, err := RunCmd("pkill", "nginx"); err != nil {
+				log.Warn(err)
+			}
 			s.procMgr.StopAllProcesses()
 			break
 		}
